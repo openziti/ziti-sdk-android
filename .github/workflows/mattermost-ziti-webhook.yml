@@ -1,0 +1,37 @@
+name: ziti-mattermost-action-py
+on:
+  issues:
+  issue_comment:
+  pull_request_review:
+    types: [submitted]
+  pull_request_review_comment:
+  pull_request:
+    types: [opened, reopened]
+  push:
+  fork:
+  release:
+    types: [released]
+
+jobs:
+  ziti-webhook:
+    runs-on: ubuntu-latest
+    name: Ziti Mattermost Action - Py
+    env:
+      HAVE_SECRETS: ${{ secrets.ZHOOK_URL != '' && secrets.ZITI_MATTERMOST_IDENTITY != '' }}
+    steps:
+    - uses: openziti/ziti-mattermost-action-py@main
+      if: github.event_name != 'pull_request_review' && env.HAVE_SECRETS == 'true'
+      with:
+        zitiId: ${{ secrets.ZITI_MATTERMOST_IDENTITY }}
+        webhookUrl: ${{ secrets.ZHOOK_URL }}
+        eventJson: ${{ toJson(github.event) }}
+        senderUsername: "GitHubZ"
+        destChannel: "dev-notifications"
+    - uses: openziti/ziti-mattermost-action-py@main
+      if: github.event_name == 'pull_request_review' && github.event.review.state == 'approved' && env.HAVE_SECRETS == 'true'
+      with:
+        zitiId: ${{ secrets.ZITI_MATTERMOST_IDENTITY }}
+        webhookUrl: ${{ secrets.ZHOOK_URL }}
+        eventJson: ${{ toJson(github.event) }}
+        senderUsername: "GitHubZ"
+        destChannel: "dev-notifications"

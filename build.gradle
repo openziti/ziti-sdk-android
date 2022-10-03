@@ -1,0 +1,116 @@
+/*
+ * Copyright (c) 2018-2021 NetFoundry Inc.
+ *
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
+ * You may obtain a copy of the License at
+ *
+ *     https://www.apache.org/licenses/LICENSE-2.0
+ *
+ * Unless required by applicable law or agreed to in writing, software
+ * distributed under the License is distributed on an "AS IS" BASIS,
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
+ */
+
+buildscript {
+    repositories {
+        mavenCentral()
+        google()
+    }
+    dependencies {
+        classpath("com.android.tools.build:gradle:7.3.0")
+        classpath("org.jetbrains.dokka:dokka-gradle-plugin:1.7.10")
+    }
+
+    ext.versions = [
+            lazysodiumJava: '5.1.1',
+            lazysodiumAndroid: '5.0.2',
+            kotlin: '1.7.20',
+            coroutines: '1.6.4',
+            slf4j: '2.0.3',
+            jupiter: '5.9.1',
+            androidxCore: '1.9.0',
+            androidxLifecycle: '2.5.1'
+    ]
+
+    ext.deps = [
+            kotlin: "org.jetbrains.kotlin:kotlin-stdlib:${versions.kotlin}",
+            kotlinCoroutines: "org.jetbrains.kotlinx:kotlinx-coroutines-core:${versions.coroutines}",
+            kotlinCoroutines8: "org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:${versions.coroutines}",
+            kotlinTest: "org.jetbrains.kotlin:kotlin-test-junit:${versions.kotlin}",
+            kotlinCoroutinesTest: "org.jetbrains.kotlinx:kotlinx-coroutines-test:${versions.coroutines}",
+            slf4jApi: "org.slf4j:slf4j-api:${versions.slf4j}",
+            slf4jSimple: "org.slf4j:slf4j-simple:${versions.slf4j}",
+            jupiterApi: "org.junit.jupiter:junit-jupiter-api:${versions.jupiter}",
+            jupiter: "org.junit.jupiter:junit-jupiter-engine:${versions.jupiter}"
+    ]
+}
+
+plugins {
+    id("org.jetbrains.kotlin.jvm") version "1.7.20"
+    id("io.wusa.semver-git-plugin") version "2.3.7"
+
+    id 'io.github.gradle-nexus.publish-plugin' version "1.1.0"
+}
+
+repositories {
+    mavenCentral()
+    google()
+}
+
+ext {
+    zitiBuildnum = System.getenv("BUILD_NUMBER") ?: "local"
+}
+
+group = "org.openziti"
+
+semver {
+    initialVersion = "0.1.0"
+    tagType = io.wusa.TagType.LIGHTWEIGHT
+    branches {
+        branch {
+            regex = "main"
+            incrementer = "PATCH_INCREMENTER"
+            formatter = { info -> "${info.version.major}.${info.version.minor}.${info.version.patch}" }
+        }
+        branch {
+            regex = ".+"
+            incrementer = "PATCH_INCREMENTER"
+            formatter = { info ->
+                def v = info.version
+                """${v.major}.${v.minor}.${v.patch}-${info.branch.id}-${v.suffix?.count ?: "0"}.${v.suffix?.sha}"""
+            }
+        }
+    }
+}
+
+ext {
+    gitCommit = semver.info.shortCommit
+    gitBranch = semver.info.branch.name
+}
+
+version = "${semver.info}"
+
+subprojects {
+    group = rootProject.group
+    version = rootProject.version
+
+    repositories {
+        mavenCentral()
+    }
+
+    tasks.withType(PublishToMavenRepository).all {
+        onlyIf { !semver.info.dirty }
+    }
+}
+
+nexusPublishing {
+    repositories {
+        sonatype {
+            nexusUrl.set(uri("https://s01.oss.sonatype.org/service/local/"))
+            snapshotRepositoryUrl.set(uri("https://s01.oss.sonatype.org/content/repositories/snapshots/"))
+        }
+    }
+}

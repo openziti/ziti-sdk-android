@@ -1,0 +1,36 @@
+name: CI build
+
+on:
+  push:
+    branches: ['*']
+  pull_request:
+    branches: ['main']
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    env:
+      BUILD_NUMBER: ${{ github.GITHUB_RUN_NUMBER }}
+
+    steps:
+      - uses: actions/checkout@v3
+
+      - name: Set up JDK
+        uses: actions/setup-java@v3
+        with:
+          java-version: 11
+          distribution: temurin
+          cache: gradle
+
+      - name: Check
+        run: ./gradlew check
+        timeout-minutes: 10
+      - name: test artifacts
+        if: ${{ failure() }}
+        uses: actions/upload-artifact@v2
+        with:
+          name: test-results
+          path: ziti/build/test-results/test/*.xml
+
+      - name: Build
+        run: ./gradlew build assemble
