@@ -77,7 +77,7 @@ repositories {
 }
 
 dependencies {
-    api(project(':ziti')){
+    api("org.openziti:ziti:${versions.ziti}") {
         exclude module:"lazysodium-java"
         exclude module:"jna"
     }
