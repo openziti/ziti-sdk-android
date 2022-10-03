@@ -51,9 +51,9 @@ project.plugins.withType(MavenPublishPlugin).all {
             }
 
             scm {
-                connection = "scm:git:https://github.com/openziti/ziti-jvm-sdk"
-                developerConnection = "scm:git:ssh://github.com/openziti/ziti-jvm-sdk.git"
-                url = "https://github.com/openziti/ziti-sdk-jvm"
+                connection = "scm:git:https://github.com/openziti/ziti-jvm-android"
+                developerConnection = "scm:git:ssh://github.com/openziti/ziti-jvm-android.git"
+                url = "https://github.com/openziti/ziti-sdk-android"
             }
         }
     }

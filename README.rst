@@ -1,13 +1,14 @@
-.. image:: https://github.com/openziti/ziti-sdk-jvm/workflows/CI%20build/badge.svg
-    :target: https://github.com/openziti/ziti-sdk-jvm/actions?query=workflow%3A%22CI+build%22
+.. image:: https://github.com/openziti/ziti-sdk-android/workflows/CI%20build/badge.svg
+    :target: https://github.com/openziti/ziti-sdk-android/actions?query=workflow%3A%22CI+build%22
 
-.. image:: http://maven-badges.herokuapp.com/maven-central/org.openziti/ziti/badge.svg
-    :target: http://maven-badges.herokuapp.com/maven-central/org.openziti/ziti
+.. image:: http://maven-badges.herokuapp.com/maven-central/org.openziti/ziti-android/badge.svg
+    :target: http://maven-badges.herokuapp.com/maven-central/org.openziti/ziti-android
 
 Ziti SDK for JVM
 =================
-The **Ziti SDK for JVM** enables Java and other developers to easily and securely connect their applications
-to backend services over Ziti networks.
+The **Ziti SDK for Android** enables developers to easily and securely connect their
+Android applications
+to backend services over [OpenZiti](https://github.com/openziti/ziti) networks.
 
 .. contents::
 
@@ -18,9 +19,9 @@ Release Notes
 
 Obtaining SDK
 ------------
-The recommended way to use the Ziti SDK for Java in your project is to add the dependency
+The recommended way to use the Ziti SDK for Android in your project is to add the dependency
 using your favorite build tool.
-Our artifacts are hosted on JCenter, so add JCenter repo and dependency to your project.
+Our artifacts are hosted on Maven Central, so add the repo and dependency to your project.
 Make sure to use latest version from the top of this page.
 
 Maven
@@ -36,8 +37,8 @@ _____
                 <enabled>false</enabled>
             </snapshots>
             <id>central</id>
-            <name>bintray</name>
-            <url>https://jcenter.bintray.com</url>
+            <name>Maven Central</name>
+            <url>https://repo.maven.apache.org/maven2/</url>
          </repository>
      </repositories>
      ....
@@ -45,7 +46,7 @@ _____
         ...
         <dependency>
            <groupId>org.openziti</groupId>
-           <artifactId>ziti</artifactId>
+           <artifactId>ziti-android</artifactId>
            <version>[0,)</version>
         </dependency>
      </dependencies>
@@ -63,7 +64,7 @@ ______
    ...
    dependencies {
       ...
-      implementation 'org.openziti:ziti:0.13+'
+      implementation 'org.openziti:ziti-android:+' // todo use fixed version
    }
 
 Building from Source
@@ -75,7 +76,7 @@ Once you check out the project from GitHub, you can build it using gradle:
     ./gradlew build
 
     # install into your local maven cache
-    ./gradlew :ziti:install
+    ./gradlew :ziti-android:install
 
 
 Features
@@ -132,4 +133,4 @@ to address them.
 .. _Developer Community: https://ziti.dev
 .. _docs: https://openziti.github.io/ziti/overview.html
 .. _Discourse: https://openziti.discourse.group/
-.. _issues: https://github.com/openziti/ziti-sdk-jvm/issues
+.. _issues: https://github.com/openziti/ziti-sdk-android/issues
