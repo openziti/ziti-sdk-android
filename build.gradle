@@ -28,7 +28,7 @@ buildscript {
             ziti: '0.23.15',
             lazysodiumJava: '5.1.1',
             lazysodiumAndroid: '5.0.2',
-            kotlin: '1.7.20',
+            kotlin: '1.7.21',
             coroutines: '1.6.4',
             slf4j: '2.0.3',
             jupiter: '5.9.1',
