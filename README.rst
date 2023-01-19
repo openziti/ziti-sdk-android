@@ -8,7 +8,7 @@ Ziti SDK for JVM
 =================
 The **Ziti SDK for Android** enables developers to easily and securely connect their
 Android applications
-to backend services over [OpenZiti](https://github.com/openziti/ziti) networks.
+to backend services over `OpenZiti <https://github.com/openziti/ziti>`_ networks.
 
 .. contents::
 
