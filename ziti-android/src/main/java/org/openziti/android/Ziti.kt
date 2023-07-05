@@ -32,7 +32,6 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.flow.collect
 import kotlinx.coroutines.launch
 import org.openziti.ZitiContext
 import org.openziti.net.dns.DNSResolver
@@ -104,7 +103,7 @@ object Ziti: CoroutineScope, Logged by ZitiLog() {
         })
 
         val appId = app.packageName
-        val appVer = app.packageManager.getPackageInfo(appId, 0).versionName
+        val appVer = getAppVersion()
         org.openziti.Ziti.setApplicationInfo(appId, appVer)
 
         keyStore = KeyStore.getInstance("AndroidKeyStore")
@@ -170,8 +169,9 @@ object Ziti: CoroutineScope, Logged by ZitiLog() {
     }
 
     fun enrollZiti(jwtUri: Uri) {
-        val jwt = app.contentResolver.openInputStream(jwtUri)!!.readBytes()
-        enrollZiti(jwt)
+        app.contentResolver.openInputStream(jwtUri)?.use {
+            enrollZiti(it.readBytes())
+        }
     }
 
     fun enrollZiti(jwt: ByteArray) {
@@ -207,7 +207,7 @@ object Ziti: CoroutineScope, Logged by ZitiLog() {
         putExtra(Intent.EXTRA_SUBJECT, app.getString(R.string.supportEmailSubject))
 
         val identities = Impl.getContexts()
-        val ids = if (identities.isNullOrEmpty()) {
+        val ids = if (identities.isEmpty()) {
             "no enrollments"
         } else {
             identities.joinToString(separator = "\n") {
@@ -216,16 +216,16 @@ object Ziti: CoroutineScope, Logged by ZitiLog() {
         }
 
         val bodyString = """
-                    |Device:          ${Build.MODEL} (${Build.MANUFACTURER})
-                    |Android Version: ${Build.VERSION.RELEASE}
-                    |Android-SDK:     ${Build.VERSION.SDK_INT}
-                    |Ziti Version:    ${BuildConfig.ZITI_VERSION}(${Version.revision})
-                    |App:             ${app.packageName}
-                    |App Version:     ${app.packageManager.getPackageInfo(app.packageName, 0).versionName}
-                    |
-                    |Enrollments:
-                    |${ids}
-                    |""".trimMargin()
+                        |Device:          ${Build.MODEL} (${Build.MANUFACTURER})
+                        |Android Version: ${Build.VERSION.RELEASE}
+                        |Android-SDK:     ${Build.VERSION.SDK_INT}
+                        |Ziti Version:    ${BuildConfig.ZITI_VERSION}(${Version.revision})
+                        |App:             ${app.packageName}
+                        |App Version:     ${getAppVersion()}
+                        |
+                        |Enrollments:
+                        |${ids}
+                        |""".trimMargin()
 
         putExtra(Intent.EXTRA_TEXT, bodyString)
 
@@ -255,8 +255,12 @@ object Ziti: CoroutineScope, Logged by ZitiLog() {
         zip.flush()
         zip.close()
 
-        putExtra(Intent.EXTRA_STREAM, FileProvider.getUriForFile(app,
-            "${app.packageName}.provider", logFile))
+        putExtra(
+            Intent.EXTRA_STREAM, FileProvider.getUriForFile(
+                app,
+                "${app.packageName}.provider", logFile
+            )
+        )
     }
 
     @JvmStatic
@@ -274,4 +278,9 @@ object Ziti: CoroutineScope, Logged by ZitiLog() {
 
     @JvmStatic
     fun getSSLSocketFactory() = Impl.getSSLSocketFactory()
+
+    fun getAppVersion(): String {
+        val packageInfo = app.packageManager.getPackageInfo(app.packageName, 0)
+        return packageInfo.versionName
+    }
 }
