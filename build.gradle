@@ -102,9 +102,9 @@ subprojects {
         mavenCentral()
     }
 
-    tasks.withType(PublishToMavenRepository).all {
-        onlyIf { !semver.info.dirty }
-    }
+//    tasks.withType(PublishToMavenRepository).all {
+//        onlyIf { !semver.info.dirty }
+//    }
 }
 
 nexusPublishing {
