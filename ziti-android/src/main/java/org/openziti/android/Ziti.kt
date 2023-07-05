@@ -203,7 +203,7 @@ object Ziti: CoroutineScope, Logged by ZitiLog() {
 
     fun sendFeedbackIntent() = Intent(Intent.ACTION_SEND).apply {
         type = "application/zip"
-        putExtra(Intent.EXTRA_EMAIL, arrayOf("support@netfoundry.io"))
+        putExtra(Intent.EXTRA_EMAIL, arrayOf("developers@openziti.org"))
         putExtra(Intent.EXTRA_SUBJECT, app.getString(R.string.supportEmailSubject))
 
         val identities = Impl.getContexts()
