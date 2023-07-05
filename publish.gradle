@@ -44,9 +44,9 @@ project.plugins.withType(MavenPublishPlugin).all {
 
             developers {
                 developer {
-                    id = "advdev"
-                    name = "NetFoundry Advanced Development Team"
-                    email = "adv-dev@netfoundry.io"
+                    id = "devs"
+                    name = "OpenZiti Development Team"
+                    email = "developers@openziti.org"
                 }
             }
 

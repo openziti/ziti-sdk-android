@@ -79,7 +79,7 @@ class AppInfoProvider: DebugInfoProvider {
         output.appendLine("Android-SDK:     ${Build.VERSION.SDK_INT}")
         output.appendLine("Ziti Version:    ${BuildConfig.ZITI_VERSION}(${Version.revision})")
         output.appendLine("App:             ${Ziti.app.packageName}")
-        output.appendLine("App Version:     ${Ziti.app.packageManager.getPackageInfo(Ziti.app.packageName, 0).versionName}")
+        output.appendLine("App Version:     ${Ziti.getAppVersion()}")
     }
 }
 
