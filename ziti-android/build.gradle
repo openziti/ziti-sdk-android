@@ -36,12 +36,12 @@ ext {
 }
 
 android {
-    compileSdkVersion 31
+    compileSdkVersion 33
     ndkVersion "21.3.6528147"
 
     defaultConfig {
         minSdkVersion 26
-        targetSdkVersion 31
+        targetSdkVersion 33
         versionCode 1
 
         buildConfigField "String", "GIT_COMMIT", "\"${semver.info.shortCommit}\""
