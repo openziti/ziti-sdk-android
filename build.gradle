@@ -25,7 +25,7 @@ buildscript {
     }
 
     ext.versions = [
-            ziti: '0.23.15',
+            ziti: '0.24.0',
             lazysodiumJava: '5.1.1',
             lazysodiumAndroid: '5.0.2',
             kotlin: '1.7.20',
