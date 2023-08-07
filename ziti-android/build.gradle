@@ -17,7 +17,6 @@
 plugins {
     alias(libs.plugins.android.lib)
     alias(libs.plugins.kotlin.android)
-    alias(libs.plugins.dokka)
     id("maven-publish")
 }
 
@@ -26,8 +25,13 @@ ext {
 }
 
 android {
-    compileSdk 33
-    ndkVersion "21.3.6528147"
+    namespace = "org.openziti.android"
+    compileSdk = 33
+    ndkVersion = "21.3.6528147"
+
+    buildFeatures {
+        buildConfig = true
+    }
 
     defaultConfig {
         minSdkVersion 26
@@ -59,6 +63,13 @@ android {
         }
     }
 
+    publishing {
+        singleVariant("release") {
+            withJavadocJar()
+            withSourcesJar()
+        }
+    }
+
     lintOptions {
         abortOnError false
     }
@@ -83,22 +94,12 @@ dependencies {
     testApi(libs.jupiter.api)
     testImplementation(libs.jupiter.engine)
 
-    androidTestImplementation(libs.retrofit)
+    androidTestImplementation(libs.retrofit.core)
     androidTestImplementation(libs.retrofit.gson)
 
     androidTestImplementation(libs.junit)
     androidTestImplementation(libs.espresso.core)
 
-}
-
-tasks.register("sourceJar", Jar) {
-    from android.sourceSets.main.java.srcDirs
-    archiveClassifier = "sources"
-}
-
-tasks.register("dokkaJar", Jar) {
-    archiveClassifier = "javadoc"
-    from dokkaJavadoc.outputDirectory
 }
 
 afterEvaluate {
@@ -108,8 +109,6 @@ afterEvaluate {
                 groupId = project.group
                 version = project.version
                 from components.release
-                artifact sourceJar
-                artifact dokkaJar
             }
         }
     }
