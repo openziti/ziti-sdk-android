@@ -14,47 +14,10 @@
  * limitations under the License.
  */
 
-//buildscript {
-//    ext.versions = [
-//            ziti: '0.24.0',
-//            lazysodiumJava: '5.1.1',
-//            lazysodiumAndroid: '5.0.2',
-//            kotlin: '1.9.0',
-//            coroutines: '1.6.4',
-//            slf4j: '2.0.3',
-//            jupiter: '5.9.3',
-//            androidxCore: '1.9.0',
-//            androidxLifecycle: '2.6.1'
-//    ]
-//
-//    ext.deps = [
-//            kotlin: "org.jetbrains.kotlin:kotlin-stdlib:${versions.kotlin}",
-//            kotlinCoroutines: "org.jetbrains.kotlinx:kotlinx-coroutines-core:${versions.coroutines}",
-//            kotlinCoroutines8: "org.jetbrains.kotlinx:kotlinx-coroutines-jdk8:${versions.coroutines}",
-//            kotlinTest: "org.jetbrains.kotlin:kotlin-test-junit:${versions.kotlin}",
-//            kotlinCoroutinesTest: "org.jetbrains.kotlinx:kotlinx-coroutines-test:${versions.coroutines}",
-//            slf4jApi: "org.slf4j:slf4j-api:${versions.slf4j}",
-//            slf4jSimple: "org.slf4j:slf4j-simple:${versions.slf4j}",
-//            jupiterApi: "org.junit.jupiter:junit-jupiter-api:${versions.jupiter}",
-//            jupiter: "org.junit.jupiter:junit-jupiter-engine:${versions.jupiter}"
-//    ]
-//}
-
 plugins {
-//    id("org.jetbrains.kotlin.jvm") version "1.9.0"
     alias(libs.plugins.nexus.publish)
     alias(libs.plugins.semver.git)
 }
-
-//repositories {
-//    mavenCentral()
-//    google()
-//}
-
-ext {
-    zitiBuildnum = System.getenv("BUILD_NUMBER") ?: "local"
-}
-
 
 semver {
     initialVersion = "0.1.0"
