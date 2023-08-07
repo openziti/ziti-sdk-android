@@ -103,13 +103,13 @@ dependencies {
 }
 
 
-tasks.register('sourceJar', Jar) {
+tasks.register("sourceJar", Jar) {
     from android.sourceSets.main.java.srcDirs
-    classifier "sources"
+    archiveClassifier = "sources"
 }
 
-tasks.register('dokkaJar', Jar) {
-    classifier('javadoc')
+tasks.register("dokkaJar", Jar) {
+    archiveClassifier = "javadoc"
     from dokkaJavadoc.outputDirectory
 }
 
@@ -126,5 +126,5 @@ afterEvaluate {
         }
     }
 
-    apply from: rootProject.file('publish.gradle')
+    apply from: rootProject.file("publish.gradle")
 }
