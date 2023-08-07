@@ -15,22 +15,21 @@
   ~ limitations under the License.
   -->
 
-<manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="org.openziti.android">
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
 
     <uses-permission android:name="android.permission.INTERNET" />
     <application>
-        <activity android:name=".EnrollmentActivity"></activity>
+        <activity android:name=".EnrollmentActivity" />
 
-    <provider
+        <provider
             android:name="org.openziti.android.LogFileProvider"
             android:authorities="${applicationId}.provider"
             android:exported="false"
             android:grantUriPermissions="true">
-        <meta-data
+            <meta-data
                 android:name="android.support.FILE_PROVIDER_PATHS"
                 android:resource="@xml/provider_paths"/>
-    </provider>
+        </provider>
     </application>
 
 </manifest>
