@@ -28,7 +28,8 @@ import android.os.Handler
 import android.widget.Toast
 import android.widget.Toast.LENGTH_LONG
 import androidx.core.content.FileProvider
-import androidx.localbroadcastmanager.content.LocalBroadcastManager
+import androidx.lifecycle.LiveData
+import androidx.lifecycle.MutableLiveData
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
@@ -52,9 +53,11 @@ import kotlin.coroutines.CoroutineContext
  */
 @SuppressLint("StaticFieldLeak")
 object Ziti: CoroutineScope, Logged by ZitiLog() {
-    const val IDENTITY_ADDED = "ziti.identity.added"
-    const val IDENTITY_REMOVED = "ziti.identity.removed"
-    const val IDENTITY_MFA = "ziti.identity.mfa"
+
+    sealed class IdentityEvent(val name: String)
+    class IdentityRemoved(name: String): IdentityEvent(name)
+    class IdentityAdded(name: String): IdentityEvent(name)
+
 
     private val supervisor = SupervisorJob()
     override val coroutineContext: CoroutineContext
@@ -67,6 +70,7 @@ object Ziti: CoroutineScope, Logged by ZitiLog() {
     const val ZitiNotificationChannel = "Ziti"
 
     lateinit var app: Application
+    private val identityEvent = MutableLiveData<IdentityEvent>()
 
     lateinit var zitiPref: SharedPreferences
     lateinit var keyStore: KeyStore
@@ -145,10 +149,11 @@ object Ziti: CoroutineScope, Logged by ZitiLog() {
         }
     }
 
+    fun identityEvents(): LiveData<IdentityEvent> = identityEvent
+
     fun deleteIdentity(ctx: ZitiContext) {
         Impl.removeContext(ctx)
-        LocalBroadcastManager.getInstance(app).sendBroadcast(
-            Intent(IDENTITY_REMOVED).putExtra("id", ctx.name()))
+        identityEvent.postValue(IdentityRemoved(ctx.name()))
 
         val ctrl = URI.create(ctx.controller())
         val idAlias = "ziti://${ctrl.host}:${ctrl.port}/${ctx.name()}"
@@ -181,8 +186,7 @@ object Ziti: CoroutineScope, Logged by ZitiLog() {
             try {
                 val ctx = Impl.enroll(keyStore, jwt, name)
                 showResult("Enrollment Success!!", null)
-                LocalBroadcastManager.getInstance(app).sendBroadcast(
-                    Intent(IDENTITY_ADDED).putExtra("id", ctx.name()))
+                identityEvent.postValue(IdentityAdded(ctx.name()))
             } catch (ex: Exception) {
                 e("failed to enroll", ex)
                 showResult("Enrollment Failed", ex)
