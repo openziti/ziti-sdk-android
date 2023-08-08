@@ -8,7 +8,7 @@ semver-git = "2.3.7"
 lifecycle = "2.6.1"
 coroutines = "1.7.3"
 core-ktx = "1.10.1"
-lazysodium-android = "5.0.2"
+lazysodium-android = "5.1.0"
 jna = "5.12.1"
 retrofit = "2.9.0"
 
