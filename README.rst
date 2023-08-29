@@ -1,3 +1,6 @@
+.. image:: https://raw.githubusercontent.com/openziti/branding/main/images/banners/Android.jpg
+    :alt: Ziggy using the ziti-sdk-android
+
 .. image:: https://github.com/openziti/ziti-sdk-android/workflows/CI%20build/badge.svg
     :target: https://github.com/openziti/ziti-sdk-android/actions?query=workflow%3A%22CI+build%22
 
