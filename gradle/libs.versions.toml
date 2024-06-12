@@ -14,7 +14,7 @@ retrofit = "2.9.0"
 
 ziti = "0.25.1"
 
-jupiter = "5.10.0"
+jupiter = "5.10.2"
 espresso-core = "3.5.1"
 junit = "1.1.5"
 
