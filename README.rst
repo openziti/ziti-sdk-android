@@ -79,7 +79,7 @@ Once you check out the project from GitHub, you can build it using gradle:
     ./gradlew build
 
     # install into your local maven cache
-    ./gradlew :ziti-android:install
+    ./gradlew :ziti-android:publishToMavenLocal
 
 
 Features
@@ -119,6 +119,31 @@ Android Support
 Easiest way to start developing on Android with Ziti is to create your repo from
 our `template project <https://github.com/openziti/ziti-android-app#readme>`_
 or just look at the code for inspiration.
+
+Identities are kept in the Android KeyStore: enrolling moves the identity key there, where it can be used to
+sign but not read, and ``Ziti.init()`` loads the identities from it.
+
+Setting up an application
+_________________________
+- The Ziti SDK is built with Kotlin 2.4, the Kotlin compiler of the application has to be 2.3 or newer.
+  This library is built with Android Gradle plugin 9, Gradle 9 and ``compileSdk`` 37.
+- Kotlin applications add ``org.jetbrains.kotlinx:kotlinx-coroutines-android`` themselves,
+  ``org.openziti.android.Ziti`` is a ``CoroutineScope``.
+- Several of the SDK's dependencies carry the same license and manifest files, the application has to exclude them:
+
+.. code-block:: gradle
+
+   android {
+       packaging {
+           resources {
+               excludes += ['META-INF/LICENSE*', 'META-INF/NOTICE*', 'META-INF/DEPENDENCIES',
+                            'META-INF/versions/9/OSGI-INF/MANIFEST.MF']
+           }
+       }
+   }
+
+- Minified applications need no rules of their own: the rules for the SDK and for the libsodium and JNA libraries
+  it uses come with the libraries.
 
 
 
