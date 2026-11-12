@@ -16,7 +16,6 @@
 
 plugins {
     alias(libs.plugins.android.lib)
-    alias(libs.plugins.kotlin.android)
     id("maven-publish")
 }
 
@@ -26,7 +25,7 @@ ext {
 
 android {
     namespace = "org.openziti.android"
-    compileSdk = 33
+    compileSdk = 37
     ndkVersion = "21.3.6528147"
 
     buildFeatures {
@@ -34,31 +33,29 @@ android {
     }
 
     defaultConfig {
-        minSdkVersion 26
-        targetSdkVersion 33
-        versionCode 1
+        minSdk = 26
 
-        buildConfigField "String", "GIT_COMMIT", "\"${semver.info.shortCommit}\""
-        buildConfigField "String", "GIT_BRANCH", "\"${semver.info.branch.id}\""
+        buildConfigField "String", "GIT_COMMIT", "\"${rootProject.gitCommit}\""
+        buildConfigField "String", "GIT_BRANCH", "\"${rootProject.gitBranch.replace('/', '-')}\""
         buildConfigField "String", "ZITI_VERSION", "\"${project.version}\""
 
-        testInstrumentationRunner 'androidx.test.runner.AndroidJUnitRunner'
+        testInstrumentationRunner = 'androidx.test.runner.AndroidJUnitRunner'
 
         consumerProguardFiles 'consumer-rules.pro'
     }
 
-    compileOptions {
-        targetCompatibility = "11"
-        sourceCompatibility = "11"
+    testOptions {
+        targetSdk = 37
     }
 
-    kotlin {
-        jvmToolchain(11)
+    compileOptions {
+        targetCompatibility = JavaVersion.VERSION_17
+        sourceCompatibility = JavaVersion.VERSION_17
     }
 
     buildTypes {
         release {
-            minifyEnabled false
+            minifyEnabled = false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
@@ -70,8 +67,8 @@ android {
         }
     }
 
-    lintOptions {
-        abortOnError false
+    lint {
+        abortOnError = false
     }
 }
 
@@ -89,7 +86,7 @@ dependencies {
     implementation(libs.lifecycle.viewmodel.ktx)
     implementation(libs.lifecycle.livedata.ktx)
 
-    testApi(libs.jupiter.api)
+    testImplementation(libs.jupiter.api)
     testImplementation(libs.jupiter.engine)
 
     androidTestImplementation(libs.retrofit.core)

@@ -285,6 +285,6 @@ object Ziti: CoroutineScope, Logged by ZitiLog() {
 
     fun getAppVersion(): String {
         val packageInfo = app.packageManager.getPackageInfo(app.packageName, 0)
-        return packageInfo.versionName
+        return packageInfo.versionName ?: ""
     }
 }
