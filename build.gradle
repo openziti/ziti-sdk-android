@@ -16,47 +16,37 @@
 
 plugins {
     alias(libs.plugins.nexus.publish)
-    alias(libs.plugins.semver.git)
+
+    alias(libs.plugins.android.lib) apply false
+    // the Kotlin compiler for AGP's built-in Kotlin support: it must read the metadata of the Ziti SDK
+    alias(libs.plugins.kotlin.android) apply false
 }
 
-semver {
-    initialVersion = "0.1.0"
-    tagType = io.wusa.TagType.LIGHTWEIGHT
-    branches {
-        branch {
-            regex = "main"
-            incrementer = "PATCH_INCREMENTER"
-            formatter = { info -> "${info.version.major}.${info.version.minor}.${info.version.patch}" }
-        }
-        branch {
-            regex = ".+"
-            incrementer = "PATCH_INCREMENTER"
-            formatter = { info ->
-                def v = info.version
-                """${v.major}.${v.minor}.${v.patch}-${info.branch.id}-${v.suffix?.count ?: "0"}.${v.suffix?.sha}"""
-            }
-        }
+// version and git details (gitVersion, gitCommit, gitBranch, gitDirty), see the script for the rules
+apply from: "gradle/git-version.gradle.kts"
+
+// prints the computed version and git details, the release workflow runs it to record what is being published
+tasks.register("showInfo") {
+    description = "Prints the version and git details of this build."
+    group = "help"
+    // local copies: the action must not hold on to the build script for the configuration cache
+    def info = [Version: gitVersion, Branch: gitBranch, Commit: gitCommit, Dirty: gitDirty]
+    doLast {
+        info.each { name, value -> println("$name: $value") }
     }
 }
 
-ext {
-    gitCommit = semver.info.shortCommit
-    gitBranch = semver.info.branch.name
-}
-
 group = "org.openziti"
-version = "${semver.info}"
+version = gitVersion
 
 subprojects {
     group = rootProject.group
     version = rootProject.version
 
-    repositories {
-        mavenCentral()
-    }
-
+    // a local copy: the closure must not hold on to the build script for the configuration cache
+    def dirty = gitDirty
     tasks.withType(PublishToMavenRepository).configureEach {
-        onlyIf { !semver.info.dirty }
+        onlyIf { !dirty }
     }
 }
 

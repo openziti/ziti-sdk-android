@@ -25,6 +25,9 @@ import android.net.Uri
 import android.os.Build
 import android.os.Bundle
 import android.os.Handler
+import android.security.keystore.KeyProperties
+import android.security.keystore.KeyProtection
+import android.util.Base64
 import android.widget.Toast
 import android.widget.Toast.LENGTH_LONG
 import androidx.core.content.FileProvider
@@ -32,18 +35,29 @@ import androidx.lifecycle.LiveData
 import androidx.lifecycle.MutableLiveData
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.launch
+import org.json.JSONObject
+import org.openziti.IdentityConfig
 import org.openziti.ZitiContext
 import org.openziti.net.dns.DNSResolver
 import org.openziti.util.DebugInfoProvider
 import org.openziti.util.Logged
 import org.openziti.util.Version
 import org.openziti.util.ZitiLog
+import org.openziti.util.readKey
+import java.io.ByteArrayInputStream
 import java.io.PrintWriter
+import java.io.StringReader
 import java.net.URI
+import java.net.URLDecoder
+import java.net.URLEncoder
 import java.security.KeyStore
+import java.security.cert.CertificateFactory
+import java.security.cert.X509Certificate
 import java.util.*
+import java.util.concurrent.ConcurrentHashMap
 import java.util.zip.ZipEntry
 import java.util.zip.ZipOutputStream
 import kotlin.coroutines.CoroutineContext
@@ -75,6 +89,17 @@ object Ziti: CoroutineScope, Logged by ZitiLog() {
     lateinit var zitiPref: SharedPreferences
     lateinit var keyStore: KeyStore
     var currentActivity: Activity? = null
+
+    /**
+     * What is known about a loaded identity: its name (the last part of its key store alias),
+     * the key store alias, if it is kept in the key store, and the job that stores its enabled state.
+     *
+     * A [ZitiContext] does not tell where it came from, and its name is only known after
+     * it has authenticated, so this is tracked here.
+     */
+    private class TrackedIdentity(val name: String, val alias: String?, val statusJob: Job)
+
+    private val tracked = ConcurrentHashMap<ZitiContext, TrackedIdentity>()
 
     @JvmStatic
     fun getDnsResolver(): DNSResolver = Impl.getDNSResolver()
@@ -114,19 +139,18 @@ object Ziti: CoroutineScope, Logged by ZitiLog() {
         keyStore.load(null)
 
         zitiPref = app.getSharedPreferences("ziti", Context.MODE_PRIVATE)
+
+        // the SDK loads an identity for each of these, in this order
+        val aliases = keyStore.aliases().toList().filter { isZitiAlias(it) }
+        val loadedBefore = Impl.getContexts().toSet()
         val ctxList = Impl.init(keyStore, seamless)
 
-        for (c in ctxList) {
-            val enabled = zitiPref.getBoolean("${c.name()}.enabled", true)
-            c.setEnabled(enabled)
-            launch {
-                c.statusUpdates().collect {
-                    val on = it != ZitiContext.Status.Disabled
-                    zitiPref.edit()
-                        .putBoolean("${c.name()}.enabled", on)
-                        .apply()
-                }
-            }
+        val loaded = ctxList.filter { it !in loadedBefore }
+        if (loaded.size != aliases.size) {
+            w("loaded ${loaded.size} identities for ${aliases.size} key store entries, can not tell which is which")
+        }
+        for ((i, c) in loaded.withIndex()) {
+            track(c, aliases.getOrNull(i).takeIf { loaded.size == aliases.size })
         }
 
         if (ctxList.isEmpty()) {
@@ -152,12 +176,21 @@ object Ziti: CoroutineScope, Logged by ZitiLog() {
     fun identityEvents(): LiveData<IdentityEvent> = identityEvent
 
     fun deleteIdentity(ctx: ZitiContext) {
-        Impl.removeContext(ctx)
-        identityEvent.postValue(IdentityRemoved(ctx.name()))
+        val id = tracked.remove(ctx)
+        id?.statusJob?.cancel()
 
-        val ctrl = URI.create(ctx.controller())
-        val idAlias = "ziti://${ctrl.host}:${ctrl.port}/${ctx.name()}"
-        for(a in keyStore.aliases()) {
+        val name = id?.name ?: ctx.name()
+        Impl.removeContext(ctx)
+        identityEvent.postValue(IdentityRemoved(name))
+        zitiPref.edit().remove("$name.enabled").apply()
+
+        val idAlias = id?.alias
+        if (idAlias == null) {
+            w("identity[$name] is not in the key store, nothing to remove")
+            return
+        }
+
+        for(a in keyStore.aliases().toList()) {
 
             if (keyStore.isKeyEntry(a)) {
                 if (a == idAlias) {
@@ -165,7 +198,8 @@ object Ziti: CoroutineScope, Logged by ZitiLog() {
                     keyStore.deleteEntry(a)
                 }
             } else if (keyStore.isCertificateEntry(a)) {
-                if (a.startsWith("ziti:${ctx.name()}")) {
+                // CA certificates: stored with the identity, or by an older version under the identity name
+                if (a.startsWith("$idAlias-ca-") || a.startsWith("ziti:$name")) {
                     i("removing certificate entry $a")
                     keyStore.deleteEntry(a)
                 }
@@ -180,19 +214,111 @@ object Ziti: CoroutineScope, Logged by ZitiLog() {
     }
 
     fun enrollZiti(jwt: ByteArray) {
-        val name = "ziti-sdk"
-
         Thread {
             try {
-                val ctx = Impl.enroll(keyStore, jwt, name)
+                val name = enroll(String(jwt, Charsets.UTF_8).trim())
                 showResult("Enrollment Success!!", null)
-                identityEvent.postValue(IdentityAdded(ctx.name()))
+                identityEvent.postValue(IdentityAdded(name))
             } catch (ex: Exception) {
                 e("failed to enroll", ex)
                 showResult("Enrollment Failed", ex)
             }
         }.start()
     }
+
+    /**
+     * Enrolls the identity, keeps it in the Android key store, and loads it.
+     * Talks to the controller, so it can not be called on the main thread.
+     *
+     * @return the name of the new identity
+     */
+    internal fun enroll(jwt: String): String {
+        val cfg = Impl.createEnrollment(jwt).enroll()
+
+        val name = jwtSubject(jwt) ?: "ziti-sdk"
+        val alias = identityAlias(cfg, name)
+        storeIdentity(cfg, alias)
+
+        // the key store is read again on the next start; until then the identity is loaded from its configuration
+        val ctx = Impl.newContext(cfg)
+        track(ctx, alias)
+        return name
+    }
+
+    /**
+     * Applies the enabled state saved for the identity, and keeps saving it.
+     */
+    private fun track(ctx: ZitiContext, alias: String?) {
+        // the context name is not known until the identity is authenticated
+        val name = alias?.let { aliasName(it) } ?: ctx.name()
+
+        ctx.setEnabled(zitiPref.getBoolean("$name.enabled", true))
+        val job = launch {
+            ctx.statusUpdates().collect {
+                val on = it != ZitiContext.Status.Disabled
+                zitiPref.edit()
+                    .putBoolean("$name.enabled", on)
+                    .apply()
+            }
+        }
+        tracked[ctx] = TrackedIdentity(name, alias, job)
+    }
+
+    private fun isZitiAlias(alias: String) =
+        keyStore.isKeyEntry(alias) && runCatching { URI.create(alias).scheme == "ziti" }.getOrDefault(false)
+
+    // key store aliases of identities are ziti://controller_host:controller_port/name, as the SDK expects them
+    private fun identityAlias(cfg: IdentityConfig, name: String): String {
+        val ctrl = URI.create(cfg.controller)
+        val port = if (ctrl.port == -1) 443 else ctrl.port
+        return "ziti://${ctrl.host}:$port/${URLEncoder.encode(name, Charsets.UTF_8.name())}"
+    }
+
+    private fun aliasName(alias: String) =
+        URLDecoder.decode(URI.create(alias).rawPath.substring(1), Charsets.UTF_8.name())
+
+    // the name of the identity, as the enrollment token has it
+    private fun jwtSubject(jwt: String): String? = runCatching {
+        val payload = Base64.decode(jwt.split(".")[1], Base64.URL_SAFE)
+        JSONObject(String(payload, Charsets.UTF_8)).getString("sub")
+    }.getOrNull()?.takeIf { it.isNotBlank() }
+
+    /**
+     * Moves the identity key into the key store, where it can only be used for signing, and not read out.
+     */
+    private fun storeIdentity(cfg: IdentityConfig, alias: String) {
+        val key = readKey(StringReader(cfg.id.key!!.removePrefix("pem:")))
+        val chain = readCerts(cfg.id.cert!!)
+        val ca = readCerts(cfg.id.ca)
+
+        val protection = KeyProtection.Builder(KeyProperties.PURPOSE_SIGN)
+            // TLS signs with SHA-2, or with a digest computed before the key is used
+            .setDigests(
+                KeyProperties.DIGEST_NONE, KeyProperties.DIGEST_SHA256,
+                KeyProperties.DIGEST_SHA384, KeyProperties.DIGEST_SHA512
+            ).apply {
+                if (key.algorithm == "RSA") {
+                    setSignaturePaddings(KeyProperties.SIGNATURE_PADDING_RSA_PKCS1, KeyProperties.SIGNATURE_PADDING_RSA_PSS)
+                }
+            }.build()
+
+        try {
+            keyStore.setEntry(alias, KeyStore.PrivateKeyEntry(key, chain.toTypedArray()), protection)
+            for (c in ca) {
+                keyStore.setCertificateEntry("$alias-ca-${c.serialNumber}", c)
+            }
+        } catch (ex: Exception) {
+            // do not leave half of an identity behind
+            keyStore.aliases().toList().filter { it == alias || it.startsWith("$alias-ca-") }
+                .forEach { keyStore.deleteEntry(it) }
+            throw ex
+        }
+    }
+
+    private fun readCerts(pem: String): List<X509Certificate> =
+        CertificateFactory.getInstance("X.509")
+            .generateCertificates(ByteArrayInputStream(pem.removePrefix("pem:").toByteArray()))
+            .filterIsInstance<X509Certificate>()
 
     fun showResult(str: String, ex: Exception?) {
         Handler(app.mainLooper).post {
@@ -285,6 +411,6 @@ object Ziti: CoroutineScope, Logged by ZitiLog() {
 
     fun getAppVersion(): String {
         val packageInfo = app.packageManager.getPackageInfo(app.packageName, 0)
-        return packageInfo.versionName
+        return packageInfo.versionName ?: ""
     }
 }
