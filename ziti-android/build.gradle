@@ -53,6 +53,14 @@ android {
         sourceCompatibility = JavaVersion.VERSION_17
     }
 
+    packaging {
+        resources {
+            // the instrumented tests are an app: license and manifest files that several of the SDK's dependencies carry
+            excludes += ['META-INF/LICENSE*', 'META-INF/NOTICE*', 'META-INF/DEPENDENCIES',
+                         'META-INF/versions/9/OSGI-INF/MANIFEST.MF']
+        }
+    }
+
     buildTypes {
         release {
             minifyEnabled = false
