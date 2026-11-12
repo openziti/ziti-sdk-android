@@ -77,8 +77,11 @@ dependencies {
         exclude module:"lazysodium-java"
         exclude module:"jna"
     }
-    api(libs.lazysodium.android)
-    api(libs.jna)
+    api(libs.lazysodium.android) {
+        // JNA comes as an aar below, it carries the native libraries
+        exclude group:"net.java.dev.jna", module:"jna"
+    }
+    api(variantOf(libs.jna) { artifactType("aar") })
 
     implementation(libs.kotlin)
     implementation(libs.coroutines.android)

@@ -16,14 +16,17 @@
 
 package org.openziti.android
 
+import android.os.Build
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertTrue
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
-import org.openziti.api.PostureQuery
-import org.openziti.api.PostureQueryType
-import org.openziti.api.PostureResponse
+import org.openziti.edge.model.PostureCheckType
+import org.openziti.edge.model.PostureQuery
+import org.openziti.edge.model.PostureResponseMacAddressCreate
+import org.openziti.edge.model.PostureResponseOperatingSystemCreate
 import org.openziti.posture.PostureService
 
 @RunWith(AndroidJUnit4::class)
@@ -36,11 +39,11 @@ class PostureProviderTest {
     }
     @Test
     fun osPostureTest() {
-        postureService.registerServiceCheck("servid", PostureQuery(PostureQueryType.OS, "checkid", false, null))
+        postureService.registerServiceCheck("servid", PostureQuery().id("checkid").queryType(PostureCheckType.OS))
 
         val pr = postureService.getPosture()[0]
-        assertEquals(PostureQueryType.OS, pr.typeId)
-        val os = pr.data as PostureResponse.OS
+        assertEquals(PostureCheckType.OS, pr.typeId)
+        val os = pr as PostureResponseOperatingSystemCreate
         assertEquals("android", os.type)
         val verComp = os.version.split(".")
         assertEquals(3, verComp.size)
@@ -48,12 +51,15 @@ class PostureProviderTest {
 
     @Test
     fun macPostureTest() {
-        postureService.registerServiceCheck("servid", PostureQuery(PostureQueryType.MAC, "checkid", false, null))
+        postureService.registerServiceCheck("servid", PostureQuery().id("checkid").queryType(PostureCheckType.MAC))
 
         val pr = postureService.getPosture()[0]
-        assertEquals(PostureQueryType.MAC, pr.typeId)
-        val mac = pr.data as PostureResponse.MAC
-        assert(mac.macAddresses.isNotEmpty())
+        assertEquals(PostureCheckType.MAC, pr.typeId)
+        val mac = pr as PostureResponseMacAddressCreate
+        // apps can not read hardware addresses since Android 11
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.R) {
+            assertTrue("MAC addresses: ${mac.macAddresses}", mac.macAddresses.isNotEmpty())
+        }
     }
 
 }

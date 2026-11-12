@@ -17,9 +17,11 @@
 package org.openziti.android
 
 import android.os.Build
-import org.openziti.api.PostureQuery
-import org.openziti.api.PostureQueryType
-import org.openziti.api.PostureResponse
+import org.openziti.edge.model.PostureCheckType
+import org.openziti.edge.model.PostureQuery
+import org.openziti.edge.model.PostureResponseCreate
+import org.openziti.edge.model.PostureResponseMacAddressCreate
+import org.openziti.edge.model.PostureResponseOperatingSystemCreate
 import org.openziti.posture.PostureService
 import org.openziti.posture.PostureServiceProvider
 import java.net.NetworkInterface
@@ -49,13 +51,22 @@ class PostureProvider: PostureServiceProvider {
             queries.put(query.id, query)
         }
 
-        override fun getPosture(): Array<PostureResponse> = queries.values
-            .map{ processQuery(it) }
-            .filterNotNull().toTypedArray()
+        override fun getPosture(): List<PostureResponseCreate> = queries.values
+            .mapNotNull { processQuery(it) }
 
-        internal fun processQuery(q: PostureQuery): PostureResponse? = when(q.queryType) {
-            PostureQueryType.OS -> PostureResponse.OS(q.id, "android", androidVersion, androidBuild)
-            PostureQueryType.MAC -> PostureResponse.MAC(q.id, macAddresses)
+        internal fun processQuery(q: PostureQuery): PostureResponseCreate? = when(q.queryType) {
+            PostureCheckType.OS -> PostureResponseOperatingSystemCreate().apply {
+                id(q.id)
+                typeId(PostureCheckType.OS)
+                type("android")
+                version(androidVersion)
+                build(androidBuild)
+            }
+            PostureCheckType.MAC -> PostureResponseMacAddressCreate().apply {
+                id(q.id)
+                typeId(PostureCheckType.MAC)
+                macAddresses(macAddresses.toList())
+            }
             else -> null
         }
     }
