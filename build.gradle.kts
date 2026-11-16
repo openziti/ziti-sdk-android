@@ -23,16 +23,22 @@ plugins {
 }
 
 // version and git details (gitVersion, gitCommit, gitBranch, gitDirty), see the script for the rules
-apply from: "gradle/git-version.gradle.kts"
+apply(from = "gradle/git-version.gradle.kts")
+
+// read here: inside a task's configuration block, extra would be the task's own
+val gitVersion = extra["gitVersion"] as String
+val gitCommit = extra["gitCommit"] as String
+val gitBranch = extra["gitBranch"] as String
+val gitDirty = extra["gitDirty"] as Boolean
 
 // prints the computed version and git details, the release workflow runs it to record what is being published
 tasks.register("showInfo") {
     description = "Prints the version and git details of this build."
     group = "help"
     // local copies: the action must not hold on to the build script for the configuration cache
-    def info = [Version: gitVersion, Branch: gitBranch, Commit: gitCommit, Dirty: gitDirty]
+    val info = mapOf("Version" to gitVersion, "Branch" to gitBranch, "Commit" to gitCommit, "Dirty" to gitDirty)
     doLast {
-        info.each { name, value -> println("$name: $value") }
+        info.forEach { (name, value) -> println("$name: $value") }
     }
 }
 
@@ -44,8 +50,8 @@ subprojects {
     version = rootProject.version
 
     // a local copy: the closure must not hold on to the build script for the configuration cache
-    def dirty = gitDirty
-    tasks.withType(PublishToMavenRepository).configureEach {
+    val dirty = rootProject.extra["gitDirty"] as Boolean
+    tasks.withType<PublishToMavenRepository>().configureEach {
         onlyIf { !dirty }
     }
 }

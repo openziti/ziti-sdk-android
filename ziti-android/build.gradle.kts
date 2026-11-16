@@ -19,9 +19,11 @@ plugins {
     id("maven-publish")
 }
 
-ext {
-    description "Ziti SDK for Android"
-}
+description = "Ziti SDK for Android"
+
+// git details, set on the root project by gradle/git-version.gradle.kts
+val gitCommit = rootProject.extra["gitCommit"] as String
+val gitBranch = rootProject.extra["gitBranch"] as String
 
 android {
     namespace = "org.openziti.android"
@@ -34,13 +36,13 @@ android {
     defaultConfig {
         minSdk = 26
 
-        buildConfigField "String", "GIT_COMMIT", "\"${rootProject.gitCommit}\""
-        buildConfigField "String", "GIT_BRANCH", "\"${rootProject.gitBranch.replace('/', '-')}\""
-        buildConfigField "String", "ZITI_VERSION", "\"${project.version}\""
+        buildConfigField("String", "GIT_COMMIT", "\"$gitCommit\"")
+        buildConfigField("String", "GIT_BRANCH", "\"${gitBranch.replace('/', '-')}\"")
+        buildConfigField("String", "ZITI_VERSION", "\"${project.version}\"")
 
-        testInstrumentationRunner = 'androidx.test.runner.AndroidJUnitRunner'
+        testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 
-        consumerProguardFiles 'consumer-rules.pro'
+        consumerProguardFiles("consumer-rules.pro")
     }
 
     testOptions {
@@ -55,8 +57,10 @@ android {
     packaging {
         resources {
             // the instrumented tests are an app: license and manifest files that several of the SDK's dependencies carry
-            excludes += ['META-INF/LICENSE*', 'META-INF/NOTICE*', 'META-INF/DEPENDENCIES',
-                         'META-INF/versions/9/OSGI-INF/MANIFEST.MF']
+            excludes += listOf(
+                "META-INF/LICENSE*", "META-INF/NOTICE*", "META-INF/DEPENDENCIES",
+                "META-INF/versions/9/OSGI-INF/MANIFEST.MF",
+            )
         }
     }
 
@@ -74,12 +78,12 @@ android {
 
 dependencies {
     api(libs.ziti) {
-        exclude module:"lazysodium-java"
-        exclude module:"jna"
+        exclude(module = "lazysodium-java")
+        exclude(module = "jna")
     }
     api(libs.lazysodium.android) {
         // JNA comes as an aar below, it carries the native libraries
-        exclude group:"net.java.dev.jna", module:"jna"
+        exclude(group = "net.java.dev.jna", module = "jna")
     }
     api(variantOf(libs.jna) { artifactType("aar") })
 
@@ -97,13 +101,13 @@ dependencies {
 afterEvaluate {
     publishing {
         publications {
-            zitiAndroid(MavenPublication) {
-                groupId = project.group
-                version = project.version
-                from components.release
+            register<MavenPublication>("zitiAndroid") {
+                groupId = project.group.toString()
+                version = project.version.toString()
+                from(components["release"])
             }
         }
     }
 
-    apply from: rootProject.file("publish.gradle")
+    apply(from = rootProject.file("publish.gradle.kts"))
 }

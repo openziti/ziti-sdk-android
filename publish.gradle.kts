@@ -14,25 +14,28 @@
  * limitations under the License.
  */
 
-apply plugin: 'signing'
+// applied to the publishing module from its build script
 
-project.plugins.withType(MavenPublishPlugin).all {
-    def pubExt = project.extensions.getByType(PublishingExtension)
-    pubExt.publications.withType(MavenPublication).all { pub ->
+apply(plugin = "signing")
 
-        if (rootProject.hasProperty('signingKey')) {
-            def signingKey = findProperty("signingKey")
-            def signingPassword = findProperty("signingPassword")
-            project.signing {
+plugins.withType<MavenPublishPlugin>().all {
+    val pubExt = project.extensions.getByType<PublishingExtension>()
+    pubExt.publications.withType<MavenPublication>().all {
+        val pub = this
+
+        if (rootProject.hasProperty("signingKey")) {
+            val signingKey = project.findProperty("signingKey") as String?
+            val signingPassword = project.findProperty("signingPassword") as String?
+            project.extensions.configure<SigningExtension> {
                 useInMemoryPgpKeys(signingKey, signingPassword)
-                sign pub
+                sign(pub)
             }
         }
 
-        pub.pom {
-            name = project.getName()
+        pom {
+            name = project.name
             url = "https://openziti.org"
-            description = project.getProperty('description')
+            description = project.description
 
             licenses {
                 license {
@@ -58,4 +61,3 @@ project.plugins.withType(MavenPublishPlugin).all {
         }
     }
 }
-

@@ -16,7 +16,7 @@
 
 # The rules for the Ziti SDK itself (java.net.http, jjwt, the classes bound to JSON) come with the SDK.
 
-# lazysodium-java is replaced by lazysodium-android (see build.gradle), so the SDK's default
+# lazysodium-java is replaced by lazysodium-android (see build.gradle.kts), so the SDK's default
 # crypto loader, which uses it, is never loaded
 -dontwarn com.goterl.lazysodium.LazySodiumJava
 -dontwarn com.goterl.lazysodium.SodiumJava
