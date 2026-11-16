@@ -26,7 +26,6 @@ ext {
 android {
     namespace = "org.openziti.android"
     compileSdk = 37
-    ndkVersion = "21.3.6528147"
 
     buildFeatures {
         buildConfig = true
@@ -61,13 +60,6 @@ android {
         }
     }
 
-    buildTypes {
-        release {
-            minifyEnabled = false
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-        }
-    }
-
     publishing {
         singleVariant("release") {
             withJavadocJar()
@@ -97,15 +89,9 @@ dependencies {
     implementation(libs.lifecycle.viewmodel.ktx)
     implementation(libs.lifecycle.livedata.ktx)
 
-    testImplementation(libs.jupiter.api)
-    testImplementation(libs.jupiter.engine)
-
-    androidTestImplementation(libs.retrofit.core)
-    androidTestImplementation(libs.retrofit.gson)
-
     androidTestImplementation(libs.junit)
-    androidTestImplementation(libs.espresso.core)
-
+    // the instrumentation runner named in defaultConfig, it no longer comes with androidx.test.ext:junit
+    androidTestImplementation(libs.test.runner)
 }
 
 afterEvaluate {
