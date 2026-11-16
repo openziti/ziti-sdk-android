@@ -12,6 +12,9 @@ on:
   release:
     types: [released]
 
+# the action posts with the Mattermost webhook and the Ziti identity, it does not use the GITHUB_TOKEN
+permissions: {}
+
 jobs:
   ziti-webhook:
     runs-on: ubuntu-latest
